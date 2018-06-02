@@ -1,15 +1,20 @@
 ---
-title: "final_proj"
+title: "Final Project"
 author: "Muxuan Lyu"
 date: "May 25, 2018"
-output: github_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+toc_depth: 12
+number_sections: true
 ---
 
 ```{r, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
-
+# load packages
 ```{r, include=FALSE}
 #load packages
 library(tidyverse)
@@ -17,8 +22,11 @@ library(dotwhisker)
 library(broom)
 library(sjPlot) #reg table
 library(ggcorrplot) #heatmap
+library(plotly)
 ```
 
+
+# get the data
 ```{r, include=FALSE}
 #get the data
 scale_by_type <- read_csv("ScaleByType.csv") #for regression dotwhisker plot by scene type
@@ -27,6 +35,8 @@ semantics <- read_csv("semantics.csv") #for semantic features
 
 ```
 
+
+# data aggregation
 ```{r overall plot data aggregation}
 #turing trees into binary 
 semantics <- semantics %>%
@@ -40,6 +50,10 @@ data_features <- semantics[1:1428, c("billboard","tree2","lake","house","sign")]
 
 #combine datasets
 ratings_features <- cbind(data_ratings, data_features)
+#changing names of the levels
+ratings_features$type = as.factor(ratings_features$type)
+levels(ratings_features$type) = c("Flat 1", "Flat 2", "Hill 1", "Hill 2", "Mountain 1", "Mountain 2")
+
 
 #assigning features
 features_plot <- ratings_features %>%
@@ -53,17 +67,17 @@ features_plot <- ratings_features %>%
                                                                 ifelse(house == 1 & sign == 1, "House + Traffic Sign",
                                                                       "None"
                                                                       )))))))))
-#changing names of the levels
-levels(features_plot$type) = c("Flat 1", "Flat 2", "Hill 1", "Hill 2", "Mountain 1", "Mountain 2")
 
 ```
 
-```{r overall plot, fig.height = 4, fig.width = 12}
 
-ggplot(features_plot, aes(time, AvePref, fill = feature_type)) +
+# overall plot
+```{r overall plot}
+
+g <- ggplot(features_plot, aes(time, AvePref, fill = feature_type)) +
     geom_col() +
-    geom_point(aes(time, AvePref), size = 0.5) +
     facet_wrap( ~ type, scale = "free_x", nrow = 1) + 
+    #geom_line(aes(time, AvePref, group = type)) + #this line for ggplot only
     theme_bw() +
     theme(legend.position="bottom",
          strip.background =element_rect(fill="white")) +
@@ -76,15 +90,17 @@ ggplot(features_plot, aes(time, AvePref, fill = feature_type)) +
                                "palegreen2"
                               )) +
      labs(title = "Average ratings under the influences of different features", 
-        y = "Average rating",
-        x = "Time(s)") +
-     scale_x_continuous(breaks = seq(0, 120, by = 20), minor_breaks = seq(0, 120, 5)) 
-     
-    
+        y = "Average rating (z-scored)",
+        x = "Time (s)") +
+     scale_x_continuous(breaks = seq(0, 120, by = 20), minor_breaks = seq(0, 120, 5)) +
+     guides(fill=guide_legend(title="Features type")) 
 
+#g
+#ggsave("ratings_features_col.png")
+ggplotly(g)  
 ```
 
-
+# correlation heatmap
 ```{r cor heatmap}
 features_cor <- scale_all %>%
   select(-type, -scene_type, -time, -sky, -slope, -AvePref)
@@ -98,7 +114,7 @@ ggcorrplot(corr_features, hc.order = TRUE, outline.col = "white", type = "upper"
   labs(title = "Correlations between low-level viusal and semantic features")
 ```
 
-
+# reg tables
 ```{r regression models build-up}
 #regression analysis by scene type
 flat_reg <- scale_by_type[1:480,]
@@ -119,11 +135,6 @@ fit_mount = lm(AvePref ~ Edge + Hue + Sat + Lum + sdHue + sdSat + sdBright + Ent
           data = mount_reg)
 ```
 
-##### Regression analysis in videos of flat terrains
-```{r regression table 1}
-sjt.lm(fit_flat)
-
-```
 
 ##### Visualize regression table 1
 ```{r dotwhisker plot 1}
@@ -153,12 +164,7 @@ two_brackets <- list(c("Low-Level Visual Features","Edge", "Entropy"),
        axis.text.y=element_text(size=rel(1.1)))} %>% 
   add_brackets(two_brackets)
 
-```
 
-
-##### Regression analysis in videos of rolling hills
-```{r regression table 2}
-sjt.lm(fit_hill)
 
 ```
 
@@ -190,14 +196,6 @@ two_brackets <- list(c("Low-Level Visual Features","Edge", "***Entropy"),
   add_brackets(two_brackets)
 ```
 
-
-##### Regression analysis in videos of mountainous forests
-```{r regression table 3}
-sjt.lm(fit_mount)
-
-```
-
-
 ##### Visualize regression table 3
 ```{r dot whiskerplot 3}
 two_brackets <- list(c("Low-Level Visual Features","Edge", "Entropy"), 
@@ -223,4 +221,6 @@ two_brackets <- list(c("Low-Level Visual Features","Edge", "Entropy"),
         axis.text.y=element_text(size=rel(1.1)))} %>% 
   add_brackets(two_brackets)
 ```
+
+
 

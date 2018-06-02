@@ -1,0 +1,189 @@
+---
+title: "Final Project Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+```
+
+
+```{r, include=FALSE}
+#load packages
+library(tidyverse)
+library(dotwhisker)
+library(broom)
+library(sjPlot) #reg table
+library(ggcorrplot) #heatmap
+library(plotly)
+```
+
+
+```{r, include=FALSE}
+#get the data
+scale_by_type <- read_csv("ScaleByType.csv") #for regression dotwhisker plot by scene type
+scale_all <- read_csv("scale2gather_final.csv") #for cor heat map and avg ratings plot
+semantics <- read_csv("semantics.csv") #for semantic features
+
+```
+
+```{r overall plot data aggregation}
+#turing trees into binary 
+semantics <- semantics %>%
+  mutate(tree2 = ifelse(tree!=0, 1, 0))
+
+#extract avg ratings
+data_ratings <- scale_all[,c("time","type", "scene_type","AvePref")]
+
+#extract semantics features
+data_features <- semantics[1:1428, c("billboard","tree2","lake","house","sign")]
+
+#combine datasets
+ratings_features <- cbind(data_ratings, data_features)
+#changing names of the levels
+ratings_features$type = as.factor(ratings_features$type)
+levels(ratings_features$type) = c("Flat 1", "Flat 2", "Hill 1", "Hill 2", "Mountain 1", "Mountain 2")
+
+
+#assigning features
+features_plot <- ratings_features %>%
+  mutate(feature_type = ifelse(tree2 == 1 & billboard == 0 & lake == 0, "Tree", 
+                           ifelse(tree2 == 0 & billboard == 1, "Billboard",
+                                  ifelse(tree2 == 0 & lake == 1, "Lake",
+                                        ifelse(tree2 == 1 & billboard == 1, "Billboard + Tree",
+                                              ifelse(tree2 == 1 & lake == 1, "Lake + Tree",
+                                                    ifelse(house == 1 & sign == 0, "House",
+                                                          ifelse(sign == 1 & house == 0, "Traffic Sign",
+                                                                ifelse(house == 1 & sign == 1, "House + Traffic Sign",
+                                                                      "None"
+                                                                      )))))))))
+
+```
+
+
+Exploration of Scenic Preference Using GIS-Modeled Highway Environments {.tabset .tabset-fade}
+-------------------------------------
+   
+# Introduction
+
+### Background
+Aesthetics plays an integral role in promoting personal well-being. While individuals may not be consciously aware of their choices, they intrinsically prefer a setting where they can function efficiently. Previous research showed that people have a preference for natural over artificial environments (Velarde, Fry, & Tveit, 2007; Berman, Jonides, & Kaplan, 2008). This aesthetic preference has been demonstrated to be strongly associated with nature’s potential restorative effects in the research (Purcell, Peron, & Berto, 2001; Hartig & Staats, 2006; Han, 2010). For example, previous research has shown salubrious effects after engaging with natural environment, such as improving memory, attention and mood (Berman et al., 2008; Berman et al., 2012). In modern times, however, increasing man-made architect and construction have alienated individuals from the natural environment. Therefore, it is important to gain a better understanding of people’s aesthetic preference of the environment in order to maintain a crucial engagement with nature and get potential benefits from it.
+<br>
+As driving has become a daily part of our everyday life, the field has yet, to date, studied people’s aesthetic preferences with regards to roadside environment. Past studies on scenic beauty suggested that people prefer the properties of nature. They reported that people prefer semantic features of nature, such as trees, water, and flowers (Nelson, 1997; Clay & Daniel, 2000; Brush, Chenoweth, & Barman, 2000), and that removal of built-up features like billboards could increase landscape appreciation (Antonson et al., 2009; Garré, Meeus, & Gulinck, 2009). A recent study (Kardan & Berman et al., 2015) quantified natural scenes by using low-level visual features (i.e., edge, hue, saturation, brightness, standard deviation of hue, standard deviation of saturation, etc.). In their study, participants were asked to rate the naturalness of the shown images and their likeness towards them. Results showed that low-level visual features significantly predicted people’s preference towards the images as well as the naturalness ratings of the images. 
+
+
+
+### Current study
+In the current study, we aim to investigate people’s aesthetic preference by using constructed highway environments with constantly changing surroundings. We generated simulation videos with the input of Geographical Information System (GIS) data, images and 3D models. The videos contain controlled environmental characteristics of a landscape, which are not only convenient for examining what specific design elements that affect scenic preference, but also simultaneously control for potential effects caused by demographic and social factors. Furthermore, we seek to provide a more nuanced understanding of preference by utilizing a slider bar to capture the continuous change of preference ratings throughout the whole experiment.
+
+
+### Hypotheses
+We have several hypotheses. We hypothesize that both low-level visual features and semantic features of nature will be likely to predict preferences. Specifically, semantic features (e.g., trees and lake) that are related to naturalness will positively predict preference whereas artificial features (e.g., billboard) will negatively predict preference. 
+
+ 
+# Overall Plot
+```{r}
+
+
+g <- ggplot(features_plot, aes(time, AvePref)) +
+    geom_line(size = 0.2) +
+    geom_col(aes(time, AvePref, fill = feature_type)) +
+    facet_wrap( ~ type, scale = "free_x", nrow = 1) +
+    theme_bw() +
+    theme(#legend.position="none",
+         strip.background =element_rect(fill="white"),
+         plot.title = element_text(vjust=20)) +
+    #assign diff colors to each features
+    scale_fill_manual(values=c("darksalmon","goldenrod", 
+                               "tan1", "tomato",
+                              "skyblue", "dodgerblue",
+                               "gainsboro",
+                               "firebrick1",
+                               "palegreen2"
+                              )) +
+     labs(title = "Average ratings under the influences of different features", 
+        y = "Average rating (z-scored)",
+        x = "Time (s)") +
+     scale_x_continuous(breaks = seq(0, 120, by = 20), minor_breaks = seq(0, 120, 5)) +
+     guides(fill=guide_legend(title="Features type")) 
+
+#g
+#ggsave("ratings_features_col.png")
+#color adjustment: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
+ggplotly(g) 
+
+
+
+```
+
+# Results and discussion
+
+```{r regression models build-up}
+#regression analysis by scene type
+flat_reg <- scale_by_type[1:480,]
+hill_reg <- scale_by_type[481:960,]
+mount_reg <- scale_by_type[961:1428,]
+
+#build regression models by scene type
+fit_flat = lm(AvePref ~ Edge + Hue + Sat + Lum + sdHue + sdSat + sdBright + Entropy + 
+                tree_PC1 + sign + house + billboard,
+          data = flat_reg)
+
+fit_hill = lm(AvePref ~ Edge + Hue + Sat + Lum + sdHue + sdSat + sdBright + Entropy + 
+                tree_PC1 + sign + lake,
+          data = hill_reg)
+
+fit_mount = lm(AvePref ~ Edge + Hue + Sat + Lum + sdHue + sdSat + sdBright + Entropy + 
+                tree_PC1 + lake,
+          data = mount_reg)
+```
+
+```{r}
+#build a dataframe for coefficients 
+df_flat<-as.tibble(summary(fit_flat)$coefficients[,1])
+df_flat <- df_flat %>%
+  #extract predictor names
+  tibble::rownames_to_column(var = "co_type") %>%
+  mutate(scene_type = "Flat")
+
+df_hill<-as.tibble(summary(fit_hill)$coefficients[,1])
+df_hill <- df_hill %>%
+  #extract predictor names
+  tibble::rownames_to_column(var = "co_type") %>%
+  mutate(scene_type = "Hill")
+
+df_mount<-as.tibble(summary(fit_mount)$coefficients[,1])
+df_mount <- df_mount %>%
+  #extract predictor names
+  tibble::rownames_to_column(var = "co_type") %>%
+  mutate(scene_type = "Mount")
+
+df_co <- rbind(df_flat, df_hill, df_mount)
+
+```
+
+```{r}
+co_order = c("Edge", "Hue", "Sat", "Lum", "sdHue", "sdSat", "sdBright", "Entropy", 
+             "tree_PC1", "sign", "house", "billboard", "lake")
+
+g_co <- df_co %>%
+  filter(co_type != "(intercept)") %>%
+  ggplot(aes(co_type, value, fill = scene_type)) +
+  geom_col(position = "dodge") +
+  scale_x_discrete(limits = co_order)
+
+ggplotly(g_co)
+```
+
+
+
+```{r}
+#https://rmarkdown.rstudio.com/flexdashboard/using.html#overview
+
+```
+
+# References
+
