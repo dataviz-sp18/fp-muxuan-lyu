@@ -1,0 +1,1 @@
+refresh to get rid of the grey bar in the legend of ggplotly graph
