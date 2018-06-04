@@ -84,7 +84,7 @@ In the current study, we aim to investigate people’s aesthetic preference by u
 
 
 ### Hypotheses
-We have several hypotheses. We hypothesize that both low-level visual features and semantic features of nature will be likely to predict preferences. Specifically, semantic features (e.g., trees and lake) that are related to naturalness will positively predict preference whereas artificial features (e.g., billboard) will negatively predict preference. 
+We have several hypotheses. We hypothesize that both low-level visual features and semantic features of nature will be likely to predict preferences. Specifically, semantic features (e.g., trees and lake) that are related to naturalness will positively predict preference whereas artificial features (e.g., billboard) will negatively predict preference. With this study, we may be able to have a better understanding of people’s aesthetic preferences in terms of both low-level visual features and semantic features. This information could potentially be helpful for urban design and landscape planning in constructing environment that optimizes subjective well-being.
 
 
 # Method 
@@ -102,14 +102,14 @@ In the study, participants were asked to rate a series of highway landscapes rep
 
 # Preliminary results
 
-### Overall plot: the figure below shows the change of average preference ratings under the influences of different semantic features across six videos. The average ratings were scaled across six videos so that it was convenient to compare between videos.
+### Overall plot
 
 ```{r}
 
 g <- ggplot(features_plot, aes(time, AvePref)) +
     geom_line(size = 0.2) +
     geom_col(aes(time, AvePref, fill = feature_type)) +
-    facet_wrap( ~ type, scale = "free_x", nrow = 1) +
+    facet_wrap( ~ type, nrow = 3) +
     theme_bw() +
     theme(#legend.position="none",
          strip.background =element_rect(fill="white"),
@@ -142,35 +142,14 @@ include_graphics("scenes_plots.png")
 ```
 
 ### Results
-Above is another figure that links the former graph with exmaple scenes at some significant points. The figure at the bottom shows the changes of the objective amount of trees. 
+The first figure shows the changes of preference ratings with the influences of different semantic features. Across six videos, videos of rolling hills and mountainous forests tended to have higher preferences than videos of flat terrains. The second figure links the first plot with exmaple scenes at some significant points. 
+
+<br>
 As shown in the above figures, across six videos, billboard negatively impacted the preference ratings, whereas lake positively impacted the ratings. Trees sometimes contributed positively to the preference, and sometimes negatively impacted the preference, depending on scene types as well other factors, for example, slope or curves. 
 
 
 # Regression results 
-### Visualization of the regression models
-```{r}
-include_graphics("dotwhsiker1.png")
-include_graphics("dotwhsiker2.png")
-include_graphics("dotwhsiker3.png")
-
-```
-
-### Results
-Regressions models of preference ratings were built on different features in different videos. Not all the semantic features were presented in videos of each scene type.
-
-<br>
-Flat terrains: 
-<br>Hue and variations in brightness, lower brightness and variations in hue and saturation might increase people’s preferences of the scene. Billboard and trees both negatively impacted the preference ratings. 
-
-<br>
-Rolling Hills: 
-<br>Saturation and entropy, and variations in brightness, lower brightness and variations in saturation might increase people’s preferences for the scene. Lakes also contributed to a boost in the preference ratings, however trees had a negative effect. 
-
-<br>
-Mountainous forests: 
-<br>Variations in hue, lower hue and brightness might increase people’s preferences for the scene. Lakes and trees also contributed to a boost in the preference ratings. 
-
-### Comparing between models
+### Visualization of the regression model -- flat terrains
 ```{r regression models build-up}
 #regression analysis by scene type
 flat_reg <- scale_by_type[1:480,]
@@ -191,7 +170,110 @@ fit_mount = lm(AvePref ~ Edge + Hue + Sat + Lum + sdHue + sdSat + sdBright + Ent
           data = mount_reg)
 ```
 
+```{r dotwhisker plot 1}
 
+two_brackets <- list(c("Low-Level Visual Features","Edge", "Entropy"), 
+                       c("Semantic Features","*Tree", "***Billboard")
+                      )
+
+dotwhsiker1 <- {dwplot(fit_flat, dot_args = list(size = .5, color = "firebrick3")) %>%
+  relabel_predictors(c(Edge = "Edge", 
+                       Hue = "**Hue",
+                       Sat = "Saturation",
+                      Lum = "***Brightness",
+                      sdHue = "*SD Hue",
+                      sdSat = "***SD Saturation",
+                      sdBright = "**SD Brightness",
+                       Entropy = "Entropy",
+                      tree_PC1 = "*Tree",
+                      sign = "Traffic Sign",
+                      house = "House",
+                      billboard = "***Billboard")) +
+  theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+  geom_vline(xintercept = 0, colour = "grey40", linetype = 2) +
+  ggtitle("Predicting Preference Ratings in Flat Terrains") +
+  theme(legend.position="none",
+       #plot.title = element_text(face = "bold"),
+       axis.text.y=element_text(size=rel(1.1)))} %>% 
+  add_brackets(two_brackets)
+
+dotwhsiker1
+```
+
+### Results 1
+In order to investigate how preference ratings were influenced under different features, we ran regression analyses for each scene type in a different model. Not all the semantic features were presented in videos of each scene type.
+
+<br>
+Flat terrains: 
+<br>We ran a regression analysis for videos of flat terrains in which the preference ratings were regressed on all the low level visual features and the four semantic features (trees, traffic sign, house, and billboard). Low-level visual features and semantic features accounted for a significant proportion of variance in preference ratings (adjusted R square = .44, F(12,467) = 32.68, p < .001). In this regression model, some low-level visual features (hue, brightness, SD hue, SD saturation, and SD brightness) and semantic features (billboard and trees) significantly predicted people’s preference. Specifically, higher hue and variations in brightness, lower brightness and variations in hue and saturation might increase people’s preferences of the scene. Billboard and trees both negatively impacted the preference ratings. 
+
+### Visualization of the regression model -- rolling hills
+```{r dotwhisker plot 2}
+two_brackets <- list(c("Low-Level Visual Features","Edge", "***Entropy"), 
+                       c("Semantic Features","***Tree", "***Lake")
+                      )
+
+dotwhsiker2 <- {dwplot(fit_hill, dot_args = list(size = .5, color = "firebrick3")) %>%
+  relabel_predictors(c(Edge = "Edge", 
+                       Hue = "Hue",
+                       Sat = "***Saturation",
+                      Lum = "***Brightness",
+                      sdHue = "SD Hue",
+                      sdSat = "***SD Saturation",
+                      sdBright = "***SD Brightness",
+                       Entropy = "***Entropy",
+                      tree_PC1 = "***Tree",
+                      sign = "Traffic Sign",
+                      lake = "***Lake")) +
+  theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+  geom_vline(xintercept = 0, colour = "grey40", linetype = 2) +
+  ggtitle("Predicting Preference Ratings in Rolling Hills") +
+  theme(legend.position="none",
+        #plot.title = element_text(face = "bold"),
+        axis.text.y=element_text(size=rel(1.1)))} %>% 
+  add_brackets(two_brackets)
+
+dotwhsiker2
+```
+
+### Results 2
+Rolling Hills: 
+<br>We also ran a regression analysis for videos of rolling hills in which the preference ratings were regressed on all the low level visual features and the three semantic features (trees, traffic sign, and lake). Low-level visual features and semantic features accounted for a significant proportion of variance in preference ratings (adjusted R square = .32, F(11,468) = 21.93, p < .001). In this regression model, some low-level visual features (saturation, brightness, SD saturation, SD brightness, and entropy) and semantic features (trees and lake) significantly predicted people’s preference. Specifically, higher saturation and entropy, and variations in brightness, lower brightness and variations in saturation might increase people’s preferences of the scene. Lake positively impacted the preference ratings whereas trees still negatively impacted the preference ratings. 
+
+### Visualization of the regression model -- mountainous forests
+```{r dot whiskerplot 3}
+two_brackets <- list(c("Low-Level Visual Features","Edge", "Entropy"), 
+                       c("Semantics","***Tree", "***Lake")
+                      )
+
+dotwhsiker3 <- {dwplot(fit_mount, dot_args = list(size = .5, color = "firebrick3")) %>%
+  relabel_predictors(c(Edge = "Edge", 
+                       Hue = "***Hue",
+                       Sat = "Saturation",
+                      Lum = "**Brightness",
+                      sdHue = "***SD Hue",
+                      sdSat = "SD Saturation",
+                      sdBright = "SD Brightness",
+                      Entropy = "Entropy",
+                      tree_PC1 = "***Tree",
+                      lake = "***Lake")) +
+  theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+  geom_vline(xintercept = 0, colour = "grey40", linetype = 2) +
+  ggtitle("Predicting Preference Ratings in Mountainous Forests") +
+  theme(legend.position="none",
+        #plot.title = element_text(face = "bold"),
+        axis.text.y=element_text(size=rel(1.1)))} %>% 
+  add_brackets(two_brackets)
+
+dotwhsiker3
+```
+
+### Results 3
+Mountainous forests: 
+<br>We also ran a regression analysis for videos of mountainous forests in which the preference ratings were regressed on all the low level visual features and the two semantic features (trees and lake). Low-level visual features and semantic features accounted for a significant proportion of variance in preference ratings (adjusted R square = .68, F(10,457) = 101.5, p < .001). In this regression model, some low-level visual features (hue, brightness, and SD hue) and semantic features (trees and lake) significantly predicted people’s preference. Specifically, more variations in hue, lower hue and brightness might increase people’s preferences of the scene. Lake and trees both positively impacted the preference ratings.
+
+
+### Comparing between different models
 ```{r}
 #build a dataframe for coefficients 
 df_flat<-as.tibble(summary(fit_flat)$coefficients[,1])
@@ -241,7 +323,7 @@ ggplotly(g_co)
 ```
 
 
-### Results
+### Results 4
 
 Although features were preferred different in different videos, we could still discover some consistencies between videos: more saturation and variations in brightness positively contributed to the preference ratings; but more brightness and variations in saturation were negatively contributed to the preference ratings. In terms of semantic features, billboard negatively impacted the preference, whereas lake positively impacted the preference.
 
@@ -273,7 +355,7 @@ ggplotly(cor_plot)
 
 ### Conclusions and discussion
 
-We showed in our study that across six constructed environments low-level visual features and semantic features could significantly predict aesthetic preference. Our results are in general consistent with previous literature (Kardan & Berman et al., 2015) that the regression model containing low-level visual features would significantly predict preference. For each one of the regression models, low-level visual features were all shown to account for some of the variance in preference ratings. However, the predictive directions of those low-level visual features varied in each video. Our results did not suggest consistent predictive directions of those low-level visual features on preference ratings across different landscape types. In Kardan and Berman et al. (2015)’s work, they suggested that lower hue, higher edge, and more variations in saturation were related to more preference. Similar results were not found in our study. This discrepancy between our results and previous literature could be caused by the construction of our videos. As shown in the correlation matrix (see below), the saturation and SD saturation in our generated videos have a very high correlation with each other, and the brightness and SD brightness also have a very high correlation. In general, both saturation and SD saturation, and brightness and SD brightness are associated positively with each other but should not be identical with each other. The high correlations indicated a potential problem of the videos we created that they might not be good representatives of scenes that we would encounter in daily life. Therefore, the predictive directions that low level visual features suggested in this study might not be applicable to real life. 
+We showed in our study that across six constructed environments low-level visual features and semantic features could significantly predict aesthetic preference. Our results are in general consistent with previous literature (Kardan & Berman et al., 2015) that the regression model containing low-level visual features would significantly predict preference. For each one of the regression models, low-level visual features were all shown to account for some of the variance in preference ratings. However, the predictive directions of those low-level visual features varied in each video. Our results did not suggest consistent predictive directions of those low-level visual features on preference ratings across different landscape types. In Kardan and Berman et al. (2015)’s work, they suggested that lower hue, higher edge, and more variations in saturation were related to more preference. Similar results were not found in our study. This discrepancy between our results and previous literature could be caused by the construction of our videos. As shown in the correlation matrix (see above), the saturation and SD saturation in our generated videos have a very high correlation with each other, and the brightness and SD brightness also have a very high correlation. In general, both saturation and SD saturation, and brightness and SD brightness are associated positively with each other but should not be identical with each other. The high correlations indicated a potential problem of the videos we created that they might not be good representatives of scenes that we would encounter in daily life. Therefore, the predictive directions that low level visual features suggested in this study might not be applicable to real life. 
 
 <br>
 Our results showed that the predictive values of semantic features of two features (billboard and lake) were congruent with what suggested in the previous literature (e.g., Nelson, 1997; Antonson et al., 2009). Artificial feature billboard negatively predicted the preference whereas the natural feature lake positively predicted the preference. However, the predictive value of trees was varied in different landscape types. This result did not necessarily suggest that people did not like trees in the environment, but instead it might suggest specific properties of trees that people would prefer. There might be three possible properties that could affect the influences of trees on the preference: density, openness, and variations in the environment. However, trees were only measured by objective prevalence (an algorithm calculated the relative tree-greenness) in this study and we did not have a validate measure for either density or openness. Therefore, we could not further confirm our speculations of the preference of trees in the environment.
